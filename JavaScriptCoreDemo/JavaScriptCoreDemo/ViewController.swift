@@ -7,12 +7,21 @@
 //
 
 import UIKit
+import JavaScriptCore
 
-class ViewController: UIViewController {
+@objc protocol TestJSExports: JSExport {
+    func functionInSwift()
+}
+
+class ViewController: UIViewController, UIWebViewDelegate, TestJSExports {
+    @IBOutlet weak var webView: UIWebView!
+    var jsContext: JSContext?
 
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
+        let url = NSBundle.mainBundle().URLForResource("index", withExtension: "html")!
+        webView.loadRequest(NSURLRequest(URL: url))
     }
 
     override func didReceiveMemoryWarning() {
@@ -20,6 +29,37 @@ class ViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
 
-
+    // MARK: - UIWebViewDelegate
+    func webViewDidFinishLoad(webView: UIWebView) {
+        title = webView.stringByEvaluatingJavaScriptFromString("document.title")
+        
+        // 禁用页面元素选择
+        webView.stringByEvaluatingJavaScriptFromString("document.documentElement.style.webkitUserSelect='none';")
+        
+        // 禁用长按弹出ActionSheet
+        webView.stringByEvaluatingJavaScriptFromString("document.documentElement.style.webkitTouchCallout='none';")
+        
+        jsContext = webView.valueForKeyPath("documentView.webView.mainFrame.javaScriptContext") as? JSContext
+        jsContext?.exceptionHandler = { context, exception in
+            context.exception = exception
+            print(exception)
+        }
+        
+        // 调用JS方法
+        jsContext?.objectForKeyedSubscript("show")?.callWithArguments([2])
+        
+        // JS调用Native方法
+        jsContext?.setObject(self, forKeyedSubscript: "native")
+        
+        // 绑定JS的log方法到Native
+        let log: @convention(block) String -> Void = { input in
+            print(input)
+        }
+        jsContext?.setObject(unsafeBitCast(log, AnyObject.self), forKeyedSubscript: "log")
+    }
+    
+    // MARK: - TestJSExports
+    func functionInSwift() {
+        print("call function in swift")
+    }
 }
-
