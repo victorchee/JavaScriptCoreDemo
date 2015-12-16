@@ -48,10 +48,10 @@ class ViewController: UIViewController, UIWebViewDelegate, TestJSExports {
         // 调用JS方法
         jsContext?.objectForKeyedSubscript("show")?.callWithArguments([2])
         
-        // JS调用Native方法
+        // 1. JS通过JSExport调用Native方法
         jsContext?.setObject(self, forKeyedSubscript: "native")
         
-        // 绑定JS的log方法到Native
+        // 2. JS通过Block调用Native
         let log: @convention(block) String -> Void = { input in
             print(input)
         }
