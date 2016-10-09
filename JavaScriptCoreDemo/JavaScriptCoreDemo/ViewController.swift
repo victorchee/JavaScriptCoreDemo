@@ -20,8 +20,8 @@ class ViewController: UIViewController, UIWebViewDelegate, TestJSExports {
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
-        let url = NSBundle.mainBundle().URLForResource("index", withExtension: "html")!
-        webView.loadRequest(NSURLRequest(URL: url))
+        let url = Bundle.main.url(forResource: "index", withExtension: "html")!
+        webView.loadRequest(URLRequest(url: url))
     }
 
     override func didReceiveMemoryWarning() {
@@ -30,32 +30,32 @@ class ViewController: UIViewController, UIWebViewDelegate, TestJSExports {
     }
 
     // MARK: - UIWebViewDelegate
-    func webViewDidFinishLoad(webView: UIWebView) {
-        title = webView.stringByEvaluatingJavaScriptFromString("document.title")
+    func webViewDidFinishLoad(_ webView: UIWebView) {
+        title = webView.stringByEvaluatingJavaScript(from: "document.title")
         
         // 禁用页面元素选择
-        webView.stringByEvaluatingJavaScriptFromString("document.documentElement.style.webkitUserSelect='none';")
+        webView.stringByEvaluatingJavaScript(from: "document.documentElement.style.webkitUserSelect='none';")
         
         // 禁用长按弹出ActionSheet
-        webView.stringByEvaluatingJavaScriptFromString("document.documentElement.style.webkitTouchCallout='none';")
+        webView.stringByEvaluatingJavaScript(from: "document.documentElement.style.webkitTouchCallout='none';")
         
-        jsContext = webView.valueForKeyPath("documentView.webView.mainFrame.javaScriptContext") as? JSContext
+        jsContext = webView.value(forKeyPath: "documentView.webView.mainFrame.javaScriptContext") as? JSContext
         jsContext?.exceptionHandler = { context, exception in
-            context.exception = exception
+            context?.exception = exception
             print(exception)
         }
         
         // 调用JS方法
-        jsContext?.objectForKeyedSubscript("show")?.callWithArguments([2])
+        _ = jsContext?.objectForKeyedSubscript("show")?.call(withArguments: [2])
         
         // 1. JS通过JSExport调用Native方法
-        jsContext?.setObject(self, forKeyedSubscript: "native")
+        jsContext?.setObject(self, forKeyedSubscript: "native" as (NSCopying & NSObjectProtocol)!)
         
         // 2. JS通过Block调用Native
-        let log: @convention(block) String -> Void = { input in
+        let log: @convention(block) (String) -> Void = { input in
             print(input)
         }
-        jsContext?.setObject(unsafeBitCast(log, AnyObject.self), forKeyedSubscript: "log")
+        jsContext?.setObject(unsafeBitCast(log, to: AnyObject.self), forKeyedSubscript: "log" as (NSCopying & NSObjectProtocol)!)
     }
     
     // MARK: - TestJSExports
